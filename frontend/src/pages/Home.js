@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { Component, useState, useEffect } from 'react';
 import qs from 'querystring';
 
 import api from '../services/api';
@@ -7,114 +7,97 @@ import UserTable from '../components/table/UserTable';
 import AddUserForm from '../components/forms/AddUserForm';
 import EditUserForm from '../components/forms/EditUserForm';
 
-class Home extends Component {
+const Home = () => {
 
-    constructor(props) {
-        super(props);
+  const [users, setUsers] = useState([]);
+  const [currentUser, setCurrentUser] = useState({ id: null, name: '', username: '' });
+  const [editing, setEditing] = useState(false);
 
-        this.state = {
-            users: [],
-            currentUser: { id: null, name: '', username: '' },
-            editing: false
-        }
-    }
+  useEffect(() => {
+    refreshUserTable();
+  }, []);
 
-    componentDidMount() {
-        this.refreshUserTable();
-    }
+  const refreshUserTable = () => {
+    const userData = api.get('api')
+      .then(response => response.data)
+      .then(data => {
+        setUsers(data.data);
+      });
+  }
+  
+  const addUser = (user) => {
+    api.post('api', qs.stringify(user))
+      .then(res => {
+        refreshUserTable();
+      });
+  }
 
-    refreshUserTable() {
-        this.usersData = api.get('api')
-            .then(response => response.data)
-            .then(data => {
+  const deleteUser = (id) => {
+    api.delete(`api/${id}`)
+      .then(res => {
+        refreshUserTable();
+      });
+  }
 
-                this.setState({ 
-                    users: data.data,
-                    setUsers: data.data
-                });
-            });
-    }
-
-    addUser = user => {
-
-        api.post('api', qs.stringify(user))
-            .then(res => {
-                this.refreshUserTable();
-            });
-    };
-
-    deleteUser = id => {
-
-        api.delete(`api/${id}`)
-            .then(res => {
-                this.refreshUserTable();
-            });
-    };
-
-    updateUser = (id, user) => {
-        
-        api.put(`api/${id}`, qs.stringify(user))
-            .then(res => {
-
-                this.refreshUserTable();
-            });
-        
-        this.setState({ 
-            currentUser: { id: null, name: '', username: '' }
-        });
-
-        this.setEditing(false);
-    };
-
-    editRow = user => {
-
-        this.setState({ 
-            currentUser: { id: user.id, name: user.name, username: user.username }
-        });
-
-        this.setEditing(true);
-    };
-
-    setEditing = isEditing => {
-
-        this.setState({ editing: isEditing });
-    };
-
-    render () {
-        const { users } = this.state;
-
-        return (
-            <div className="container">
-                    
-                <div className="row">
+  const updateUser = (id, user) => {
+    api.put(`api/${id}`, qs.stringify(user))
+      .then(res => {
+        refreshUserTable();
+      });
     
-                    {
-                        this.state.editing ? (
-                            <div className="col s12 l6">
-                                <h4>Edit User</h4>
-                                <EditUserForm 
-                                    editing={this.state.editing}
-                                    setEditing={this.setEditing}
-                                    currentUser={this.state.currentUser}
-                                    updateUser={this.updateUser} 
-                                />
-                            </div>
-                        ) : (
-                            <div className="col s12 l6">
-                                <h4>Add user</h4>
-                                <AddUserForm addUser={this.addUser} />
-                            </div>
-                        )
-                    }
-                    
-                    <div className="col s12 l6">
-                        <h5>Users</h5>
-                        <UserTable users={users} editRow={this.editRow} deleteUser={this.deleteUser} />
-                    </div>
-                </div>
+    setCurrentUser({id: null, name: '', username: ''});
+
+    setEditing(false);
+  }
+
+  const editRow = (user) => {
+    setCurrentUser({ id: user.id, name: user.name, username: user.username });
+    setEditing(true);
+  }
+
+
+  return (
+    <div className="container">
+
+      <div className="row">
+
+        {
+          editing ? (
+            <div className="col s12 l6">
+              <h4>Edit User</h4>
+              <EditUserForm
+                editing={editing}
+                setEditing={setEditing}
+                currentUser={currentUser}
+                updateUser={updateUser}
+              />
             </div>
-        );
-    };
-};
+          ) : (
+              <div className="col s12 l6">
+                <h4>Add user</h4>
+                <AddUserForm addUser={addUser} />
+              </div>
+            )
+        }
+
+        <div className="col s12 l6">
+          <h5>Users</h5>
+          <UserTable users={users} editRow={editRow} deleteUser={deleteUser} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+
+
+
+
+
+
+
+
+
+
 
 export default Home;
